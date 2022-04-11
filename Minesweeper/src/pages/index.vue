@@ -8,9 +8,9 @@ interface BlockState {
     adjacentMines: number;
 }
 
-const WIDTH = 10;
-const HEIGHT = 10;
-const state = reactive(
+const WIDTH = 3;
+const HEIGHT = 3;
+const state = ref(
     Array.from({ length: HEIGHT }, (_, y) =>
         Array.from(
             { length: WIDTH },
@@ -24,10 +24,13 @@ const state = reactive(
     )
 );
 
-function generateMines() {
-    for (const row of state) {
+function generateMines(initial: BlockState) {
+    for (const row of state.value) {
         for (const block of row) {
-            block.mine = Math.random() < 0.3;
+            if (block.x === initial.x && block.y === initial.y) {
+                continue;
+            }
+            block.mine = Math.random() < 0.1;
         }
     }
     updateNumbers();
@@ -47,44 +50,102 @@ const directions = [
 const numberColors = ['text-transparent', 'text-gray-500', 'text-green-500', 'text-blue-500', 'text-purple-500', 'text-orange-500', 'text-red-500', 'text-yellow-500', 'text-pink-500'];
 
 function updateNumbers() {
-    state.forEach((raw, y) => {
-        state.forEach((block, x) => {
-            if (state[y][x].mine === true) {
-                state[y][x].adjacentMines = -1;
+    state.value.forEach((raw) => {
+        raw.forEach((block) => {
+            if (block.mine) {
+                return;
             }
-
-            directions.forEach(([dx, dy]) => {
-                const x2 = x + dx;
-                const y2 = y + dy;
-
-                // 边界判定
-                if (x2 < 0 || x2 >= WIDTH || y2 < 0 || y2 >= HEIGHT) {
-                    return;
-                }
-
-                if (state[y2][x2].mine) {
-                    state[y][x].adjacentMines += 1;
+            getSiblings(block).forEach((b) => {
+                if (b.mine) {
+                    block.adjacentMines += 1;
                 }
             });
         });
     });
 }
 
+function getSiblings(block: BlockState) {
+    return directions
+        .map(([dx, dy]) => {
+            const x2 = block.x + dx;
+            const y2 = block.y + dy;
+
+            // 边界判定
+            if (x2 < 0 || x2 >= WIDTH || y2 < 0 || y2 >= HEIGHT) {
+                return undefined;
+            }
+
+            return state.value[y2][x2];
+        })
+        .filter(Boolean) as BlockState[];
+}
+
+function expendZero(block: BlockState) {
+    if (block.adjacentMines > 0) {
+        return;
+    }
+
+    // 已经探索过的不再探索
+    getSiblings(block).forEach((b) => {
+        if (b.adjacentMines > 0) {
+            return;
+        }
+        if (b.revealed) {
+            return;
+        }
+        b.revealed = true;
+        expendZero(b);
+    });
+}
+
 let mineGenerated = false;
+let dev = true;
 function onClick(block: BlockState) {
-    if (mineGenerated === false) {
-        generateMines();
+    if (!mineGenerated) {
+        generateMines(block);
         mineGenerated = true;
     }
 
     block.revealed = true;
 
+    // 如果是雷，结束游戏
     if (block.mine) {
-        state.forEach((row) => {
-            row.forEach((block) => {
-                block.revealed = true;
+        state.value.forEach((row) => {
+            row.forEach((b) => {
+                b.revealed = true;
             });
         });
+    }
+
+    // 如果是0，探索周围
+    expendZero(block);
+}
+
+function onRightClick(block: BlockState) {
+    if (block.revealed) {
+        return;
+    }
+
+    block.flagged = !block.flagged;
+}
+
+watch(state, checkGameState, { deep: true });
+
+function checkGameState() {
+    if (!mineGenerated) {
+        return;
+    } else {
+        const blocks = state.value.flat();
+
+        if (blocks.every((b) => b.revealed || b.flagged)) {
+            if (blocks.some((b) => b.flagged && !b.mine)) {
+                alert('You cheat!');
+            } else if (blocks.some((b) => !b.flagged && b.mine)) {
+                alert('Game over!');
+            } else {
+                alert('You win!');
+            }
+        }
     }
 }
 
@@ -102,8 +163,22 @@ function getBlockClass(block: BlockState) {
         MineSweeper
         <div p5>
             <div v-for="(row, y) in state" :key="y" flex="~" item-center justify-center>
-                <button v-for="(block, x) in row" :key="x" w-10 h-10 hover="bg-gray/10" @click="onClick(block)" :class="getBlockClass(block)" border="1 gray-400/10" flex="~ gap-1" items-center justify-center>
-                    <template v-if="block.revealed">
+                <button
+                    v-for="(block, x) in row"
+                    :key="x"
+                    w-10
+                    h-10
+                    hover="bg-gray/10"
+                    @click="onClick(block)"
+                    @contextmenu.prevent="onRightClick(block)"
+                    :class="getBlockClass(block)"
+                    border="1 gray-400/10"
+                    flex="~ gap-1"
+                    items-center
+                    justify-center
+                >
+                    <template v-if="block.flagged">{{ 'flag' }}</template>
+                    <template v-else-if="block.revealed || dev">
                         {{ block.mine ? '💣' : block.adjacentMines }}
                     </template>
                 </button>
