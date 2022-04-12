@@ -23,7 +23,6 @@ interface GameState {
 }
 
 
-
 export class GamePlay {
     state = ref() as Ref<GameState>
 
@@ -68,17 +67,38 @@ export class GamePlay {
             mineGenerated: false,
         }
 
+
+    }
+
+    randomRange(min: number, max: number) {
+        return Math.random() * (max - min) + min
+    }
+
+    randomInt(min: number, max: number) {
+        return Math.round(this.randomRange(min, max))
     }
 
     generateMines(state: BlockState[][], initial: BlockState) {
-        for (const row of this.state.value.board) {
-            for (const block of row) {
-                if (block.x === initial.x && block.y === initial.y) {
-                    continue;
-                }
-                block.mine = Math.random() < 0.1;
+        const placeRandom = () => {
+            const x = this.randomInt(0, this.width - 1)
+            const y = this.randomInt(0, this.height - 1)
+            const block = state[y][x]
+
+            if (Math.abs(initial.x - block.x) <= 1 && Math.abs(initial.y - block.y) <= 1) {
+                return false
             }
+            if (block.mine) {
+                return false
+            }
+            block.mine = true
+            return true
         }
+        Array.from({ length: this.mines }, () => null).forEach(() => {
+            let placed = false
+            while (!placed) {
+                placed = placeRandom()
+            }
+        })
         this.updateNumbers();
     }
 
@@ -100,21 +120,17 @@ export class GamePlay {
 
 
     expendZero(block: BlockState) {
-        if (block.adjacentMines > 0) {
-            return;
-        }
+        if (block.adjacentMines)
+            return
 
-        // 已经探索过的不再探索
-        this.getSiblings(block).forEach((b) => {
-            if (b.adjacentMines > 0) {
-                return;
-            }
-            if (b.revealed) {
-                return;
-            }
-            b.revealed = true;
-            this.expendZero(b);
-        });
+        this.getSiblings(block)
+            .forEach((s) => {
+                if (!s.revealed) {
+                    if (!s.flagged)
+                        s.revealed = true
+                    this.expendZero(s)
+                }
+            })
     }
 
 
@@ -137,19 +153,45 @@ export class GamePlay {
 
 
     checkGameState() {
-        if (!this.state.value.mineGenerated || this.state.value.status !== 'playing') {
+        if (!this.state.value?.mineGenerated || this.state.value.status !== 'playing') {
             return;
         } else {
 
             if (this.blocks.every(b => b.revealed || b.flagged)) {
                 if (this.blocks.some(b => b.flagged && !b.mine)) {
-                    alert('You cheat!');
+                    this.onGameOver('lost')
                 } else if (this.blocks.some(b => !b.flagged && b.mine)) {
-                    alert('Game over!');
+                    this.onGameOver('lost')
                 } else {
-                    alert('You win!');
+                    this.onGameOver('won')
                 }
             }
+        }
+    }
+
+    autoExpand(block: BlockState) {
+        if (this.state.value.status !== 'playing' || block.flagged)
+            return
+
+        const siblings = this.getSiblings(block)
+        const flags = siblings.reduce((a, b) => a + (b.flagged ? 1 : 0), 0)
+        const notRevealed = siblings.reduce((a, b) => a + (!b.revealed && !b.flagged ? 1 : 0), 0)
+        if (flags === block.adjacentMines) {
+            siblings.forEach((i) => {
+                if (i.revealed || i.flagged)
+                    return
+                i.revealed = true
+                this.expendZero(i)
+                if (i.mine)
+                    this.onGameOver('lost')
+            })
+        }
+        const missingFlags = block.adjacentMines - flags
+        if (notRevealed === missingFlags) {
+            siblings.forEach((i) => {
+                if (!i.revealed && !i.flagged)
+                    i.flagged = true
+            })
         }
     }
 
