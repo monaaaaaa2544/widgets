@@ -29,7 +29,7 @@ function getBlockClass(block: BlockState) {
 
 <template>
     <button min-w-8 min-h-8 hover="bg-gray/10" :class="getBlockClass(block)" m="1px" border="1 gray-400/10" flex="~ gap-2" items-center justify-center @click="whichButtons">
-        <template v-if="block.flagged">{{ 'flag' }}</template>
+        <template v-if="block.flagged">{{ 'flag' }} </template>
         <template v-else-if="block.revealed || isDev">
             {{ block.mine ? '💣' : block.adjacentMines }}
         </template>

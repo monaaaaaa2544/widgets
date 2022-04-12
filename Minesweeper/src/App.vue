@@ -4,15 +4,13 @@
 // you can use this to manipulate the document head in any components,
 // they will be rendered correctly in the html results with vite-ssg
 useHead({
-  title: 'saolei',
-  meta: [
-    { name: 'description', content: 'Opinionated Vite Starter Template' },
-  ],
-})
+    title: 'saolei',
+    meta: [{ name: 'description', content: 'Opinionated Vite Starter Template' }],
+});
 </script>
 
 <template>
-  <main font-sans p="x-4 y-10" text="center gray">
-    <router-view />
-  </main>
+    <main font-sans p="x-4 y-10" text="center gray">
+        <router-view />
+    </main>
 </template>

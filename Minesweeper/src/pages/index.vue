@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import MineBlock from '~/components/MineBlock.vue';
-import { isDev, toggleDev } from '~/composables/storage';
+// import { isDev, toggleDev } from '~/composables/storage';
 import { GamePlay } from '~/composables/logic';
 
 const play = new GamePlay(9, 9, 10);
@@ -38,13 +38,13 @@ watchEffect(() => {
 
 <template>
     <div>
-        MineSweeper
+        扫雷
         <div flex="~ gap1" justify-center p4>
-            <button btn @click="toggleDev()">{{ isDev ? 'Dev' : 'Normal' }}</button>
-            <button btn @click="play.reset()">New Game</button>
-            <button btn @click="newGame('easy')">Easy</button>
-            <button btn @click="newGame('medium')">Medium</button>
-            <button btn @click="newGame('hard')">Hard</button>
+            <!-- <button btn @click="toggleDev()">{{ isDev ? 'Dev' : 'Normal' }}</button> -->
+            <button btn @click="play.reset()">新游戏</button>
+            <button btn @click="newGame('easy')">简单</button>
+            <button btn @click="newGame('medium')">中等</button>
+            <button btn @click="newGame('hard')">难</button>
         </div>
 
         <div flex="~ gap-10" justify-center>
