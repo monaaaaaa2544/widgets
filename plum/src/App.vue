@@ -38,19 +38,19 @@ function step(b: Branch, depth=0) {
   const end=getEndPoint(b)
   drawBranch(b)
 
-  if (depth < 4 || Math.random()<0.2){
+  if (depth < 6 || Math.random()<0.2){
     pendingTasks.push(()=>step({
         start: end,
-        length: b.length*Math.random(), 
+        length: b.length+(Math.random()-0.5)*15, 
         theta: b.theta-0.6*Math.random(),
       }, depth+1))
   }
 
-  if (depth < 4 || Math.random()<0.4){
+  if (depth < 6 || Math.random()<0.4){
     pendingTasks.push(()=>step({
         start: end,
-        length: b.length*Math.random(), 
-        theta: b.theta+0.3*Math.random(),
+        length: b.length+(Math.random()-0.5)*15, 
+        theta: b.theta+0.4*Math.random(),
       }, depth+1))
   }
 }
